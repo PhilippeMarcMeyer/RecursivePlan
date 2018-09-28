@@ -1,3 +1,7 @@
+/*
+Philippe MEYER 
+DATE : 2018-09-28
+*/
 
 var globals = {
 	mainHeight : 480,
@@ -14,12 +18,12 @@ var globals = {
 	baseTrunkSize : 32,
 	treeLines : [],
 	maxIter : 12,
+	childrenAngle : 0.2,
 	fr : 25,
 	bg : null,
 	drawDelay:50,
-	nrPtsByDepth : [],
 	weight : [
-	  6,5,4,3,2,1,1,1,1,1,1,1,1,1,1,1,1
+	  6,5,4,3,2,1
 	],
 	colors :[
 		{r:116,g:73,b:73},
@@ -33,28 +37,10 @@ var globals = {
 		{r:68,g:146,b:46},
 		{r:87,g:186,b:58},
 		{r:255,g:108,b:108},
-		{r:255,g:255,b:255},
-		{r:255,g:255,b:255},
-		{r:255,g:255,b:255},
 		{r:255,g:255,b:255}
 	],	
-	fills :[
-		"#aaa",
-		"#aaa",
-		"#bbb",
-		"#bbb",
-		"#ccc",
-		"#ccc",
-		"#ddd",
-		"#ddd",
-		"#eee",
-		"#eee",
-		"#fff",
-		"#fff",
-		"#fff",
-		"#fff",
-		"#fff",
-	],
+	defaultColor :  {r:255,g:255,b:255},
+	defaultWeight : 1,
 	stop:false
 };
 
@@ -64,44 +50,7 @@ function setup() {
     cnv.parent('canvasZone');
     calculateSoil();
 	calculateTree(globals.maxIter);
-	
-	globals.bg = createGraphics(globals.mainWidth,globals.mainHeight);
-	
-	var r = 70;
-	var g = 91;
-	var b = 236;
-	
-	var r2 = 254;
-	var g2 = 186;
-	var b2 = 167;
-	
-	var diffr = r2 - r;	
-	var diffg = g2 - g;	
-	var diffb = b2 - b;
-	
-	var minDiff = min([abs(diffr),abs(diffg),abs(diffb)]);
-	
-	diffr = diffr / minDiff;	
-	diffg = diffg / minDiff;
-	diffb = diffb / minDiff;
-	
-	var diagonal = Math.floor(Math.sqrt(globals.mainWidth*globals.mainWidth+globals.mainHeight*globals.mainHeight));
-	var weight  = Math.floor(diagonal / minDiff);
-	
-	for(var i = minDiff ;i > 0;i--){
-	    
-		size = i * weight;
-
-		var r3 = Math.floor(r + diffr*i);
-		var g3 = Math.floor(g + diffg*i);
-		var b3 = Math.floor(b + diffb*i);
-		
-		globals.bg.stroke(r3,g3,b3);
-		globals.bg.fill(r3,g3,b3);
-		globals.bg.ellipse(0, 0, size, size);
-	}
 }
-
 
 function drawSky(){
 	var r2 = 10;
@@ -138,10 +87,6 @@ function drawSky(){
 		ellipse(0, 0, size, size*1.5);
 	}
 }
-
-
-	
-	
 
 function draw() {
 	if(!globals.stop){
@@ -200,6 +145,7 @@ function calculateBranch(round,maxRounds,start,angle){
 	var len = globals.baseTrunkSize;
 	var ratio = Math.pow(0.9,round+1);
 	var end = {};
+	// create the branch
 	len = Math.floor(ratio * len * random(0.8,1.3) +0.5);
 	end.x = start.x+cos(angle)*len;
 	end.y = start.y-sin(angle)*len;
@@ -207,12 +153,12 @@ function calculateBranch(round,maxRounds,start,angle){
 	branch.len = len;
 	globals.treeLines.push(branch);
 	round ++;
+	// create two children branch
 	if(round < maxRounds){
-		calculateBranch(round,maxRounds,end,angle+0.2);
-		calculateBranch(round,maxRounds,end,angle-0.2);
+		calculateBranch(round,maxRounds,end,angle+globals.childrenAngle);
+		calculateBranch(round,maxRounds,end,angle-globals.childrenAngle);
 	}
 }
-
 
 function drawTree(fcount){
 	stroke(255);
@@ -223,36 +169,36 @@ function drawTree(fcount){
 		}
 	var round = 0;
 	while(round <= depth){
+		var color = round < globals.colors.length ? globals.colors[round] : globals.defaultColor;
+		var weight = round < globals.weight.length ? globals.weight[round] : globals.defaultWeight;
 		var tree = globals.treeLines.filter(function(x){
 			return x.round == round;
 		});
+		
 		var diff = depth - round;
-		var weight = globals.weight[round];
 		
 		if(weight > depth) weight = depth+1;
-		fill(globals.colors[round].r,globals.colors[round].g,globals.colors[round].b,100);
-		stroke(globals.colors[round].r,globals.colors[round].g,globals.colors[round].b,95);
+		
+		fill(color.r,color.g,color.b,100);
+		stroke(color.r,color.g,color.b,95);
 		
 		tree.forEach(function(dash,i){
 			if(diff > 4)
-			 perlinLine(dash,weight,globals.colors[round]);
-		 else
-			 line(dash.start.x,dash.start.y,dash.end.x,dash.end.y);
-
+			 ellipseLine(dash,weight); // Draw the line with continuous points is nicer
+			else
+			 line(dash.start.x,dash.start.y,dash.end.x,dash.end.y); // too tiny to notice the difference son we choose the fastest path
 		});
 		round++;
 	}
 }
 
-function perlinLine(dash,weight,rgb){
-	
-	var xoff = 0; 
+function ellipseLine(dash,weight){
 	
 	var nrPoints = dash.len;
-
 	var xDiff = dash.end.x - dash.start.x ;
 	var yDiff = dash.end.y - dash.start.y ;
 	var len = Math.floor(Math.sqrt(xDiff*xDiff + yDiff*yDiff));
+	
 	xDiff = xDiff/len;
 	yDiff =  yDiff/len;
 	
@@ -262,13 +208,8 @@ function perlinLine(dash,weight,rgb){
 	
 	for(var i = 0; i < nrPoints;i++){
 		 y+= yDiff;
-		if(i%3==57){
-		   x+= map(noise(xoff), 0, 1, xDiff-extra, xDiff+extra);
-		}else{
-			x+= xDiff;
-		}
+		 x+= xDiff;
 		ellipse(x,y,weight+extra+1,weight+extra);
-		xoff += 0.04;
 		if(extra > 0 && i% 3 == 0) extra--;
 	}
 	ellipse(dash.end.x,dash.end.y,weight,weight);
