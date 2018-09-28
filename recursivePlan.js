@@ -19,6 +19,7 @@ var globals = {
 	treeLines : [],
 	maxIter : 12,
 	childrenAngle : 0.2,
+	fixedImageMax : 11, // I draw until this iteration, save an image and then sraw the iterations until maxIter each frame changing angles like leaves or flowers in the wind
 	fr : 25,
 	bg : null,
 	drawDelay:50,
@@ -40,14 +41,20 @@ var globals = {
 		{r:255,g:255,b:255}
 	],	
 	defaultColor :  {r:255,g:255,b:255},
-	defaultWeight : 1,
-	stop:false
+	defaultWeight : 1
 };
+
+var myLandscape=null;
+var myLandscapeSaved = false;
+
+var xOff = 0;
+var yOff = 0;
 
 function setup() {
     var mode = (globals.mode == "WEBGL") ? WEBGL : P2D;
 	var cnv = createCanvas(globals.mainWidth,globals.mainHeight,mode);
     cnv.parent('canvasZone');
+		
     calculateSoil();
 	calculateTree(globals.maxIter);
 }
@@ -89,19 +96,24 @@ function drawSky(){
 }
 
 function draw() {
-	if(!globals.stop){
+	if(myLandscape == null){
 		background(0);	
 	
-			translate(0,0);
+		translate(0,0);
 
-			drawSky();
-			translate(globals.mainWidth/2,globals.mainHeight/2 + globals.baseY);
+		drawSky();
+		translate(globals.mainWidth/2,globals.mainHeight/2 + globals.baseY);
 		   
 		
 	if(frameCount>globals.drawDelay){
 			drawSoil();
 			drawTree(frameCount-globals.drawDelay);
 		}
+	}else{
+		translate(0,0);
+		image(myLandscape, 0, 0);
+		translate(globals.mainWidth/2,globals.mainHeight/2 + globals.baseY);
+		drawTopFoliage();
 	}
 }
 
@@ -163,37 +175,79 @@ function calculateBranch(round,maxRounds,start,angle){
 function drawTree(fcount){
 	stroke(255);
 	depth = Math.round(fcount / 10);
-		if(depth > globals.maxIter) {
-			depth = globals.maxIter;
-			globals.stop = true;
+		if(depth > globals.fixedImageMax -1 ) {
+			depth = globals.fixedImageMax -1 ;
 		}
-	var round = 0;
-	while(round <= depth){
-		var color = round < globals.colors.length ? globals.colors[round] : globals.defaultColor;
-		var weight = round < globals.weight.length ? globals.weight[round] : globals.defaultWeight;
-		var tree = globals.treeLines.filter(function(x){
-			return x.round == round;
-		});
-		
-		var diff = depth - round;
-		
-		if(weight > depth) weight = depth+1;
-		
+	
+		var round = 0;
+		while(round <= depth){
+			var color = round < globals.colors.length ? globals.colors[round] : globals.defaultColor;
+			var weight = round < globals.weight.length ? globals.weight[round] : globals.defaultWeight;
+			var tree = globals.treeLines.filter(function(x){
+				return x.round == round;
+			});
+			
+			var diff = depth - round;
+			
+			if(weight > depth) weight = depth+1;
+			
+			fill(color.r,color.g,color.b,100);
+			stroke(color.r,color.g,color.b,95);
+			
+			tree.forEach(function(dash,i){
+				if(diff > 4)
+				 ellipseLine(dash,weight); // Draw the line with continuous points is nicer
+				else
+				 line(dash.start.x,dash.start.y,dash.end.x,dash.end.y); // too tiny to notice the difference son we choose the fastest path
+			});
+			
+			if(!myLandscapeSaved && round == globals.fixedImageMax -1){
+				myLandscapeSaved = true;
+				saveFrames('out', 'png', 1, globals.fr, function(data) {
+					if(data.length >0){
+					var imgData = data[0].imageData;
+					  myLandscape = loadImage(imgData);
+					}
+				});
+			}
+			round++;
+		}
+
+}
+
+function drawTopFoliage(){
+	stroke(255);
+
+	var stepsFilter = globals.treeLines.filter(function(x){
+		return x.round >= globals.fixedImageMax;
+	});
+    var steps = stepsFilter.slice(0);
+	steps.forEach(function(dash,i){
+		var index = globals.fixedImageMax + i -1;
+		var color = index < globals.colors.length ? globals.colors[index] : globals.defaultColor;
+
 		fill(color.r,color.g,color.b,100);
 		stroke(color.r,color.g,color.b,95);
 		
-		tree.forEach(function(dash,i){
-			if(diff > 4)
-			 ellipseLine(dash,weight); // Draw the line with continuous points is nicer
-			else
-			 line(dash.start.x,dash.start.y,dash.end.x,dash.end.y); // too tiny to notice the difference son we choose the fastest path
-		});
-		round++;
-	}
+		//dash.end.x = dash.end.x + map(noise(xOff), 0, 1, -3, 3),
+		//dash.end.y = dash.end.y + map(noise(yOff), 0, 1, -2, 2),
+		if(frameCount % (Math.floor(random(17,23))) == 0){
+			var x = dash.end.x + map(noise(xOff), 0, 1, -5, 5);
+			var y = dash.end.y + map(noise(yOff), 0, 1,  -5, 5);
+		}else{
+			var x =  dash.end.x;
+			var y = dash.end.y;
+		}
+		
+		xOff += 0.1;
+		yOff += 0.1;
+		
+		line(dash.start.x,dash.start.y,x,y);
+	
+	});
 }
 
 function ellipseLine(dash,weight){
-	
 	var nrPoints = dash.len;
 	var xDiff = dash.end.x - dash.start.x ;
 	var yDiff = dash.end.y - dash.start.y ;
