@@ -19,10 +19,10 @@ var globals = {
 	treeLines : [],
 	maxIter : 12,
 	childrenAngle : 0.2,
-	fixedImageMax : 11, // I draw until this iteration, save an image and then sraw the iterations until maxIter each frame changing angles like leaves or flowers in the wind
-	fr : 25,
+	folliageStart: 11, // starting from zero
+	fr : 34,
 	bg : null,
-	drawDelay:50,
+	drawDelay:450,
 	weight : [
 	  6,5,4,3,2,1
 	],
@@ -46,7 +46,7 @@ var globals = {
 
 var myLandscape=null;
 var myLandscapeSaved = false;
-
+var stopHairGrowth = false;
 var xOff = 0;
 var yOff = 0;
 
@@ -114,6 +114,7 @@ function draw() {
 		image(myLandscape, 0, 0);
 		translate(globals.mainWidth/2,globals.mainHeight/2 + globals.baseY);
 		drawTopFoliage();
+			
 	}
 }
 
@@ -175,8 +176,8 @@ function calculateBranch(round,maxRounds,start,angle){
 function drawTree(fcount){
 	stroke(255);
 	depth = Math.round(fcount / 10);
-		if(depth > globals.fixedImageMax -1 ) {
-			depth = globals.fixedImageMax -1 ;
+		if(depth > globals.maxIter -2) {
+			depth = globals.maxIter -2 ;
 		}
 	
 		var round = 0;
@@ -201,7 +202,7 @@ function drawTree(fcount){
 				 line(dash.start.x,dash.start.y,dash.end.x,dash.end.y); // too tiny to notice the difference son we choose the fastest path
 			});
 			
-			if(!myLandscapeSaved && round == globals.fixedImageMax -1){
+			if(!myLandscapeSaved && round == globals.maxIter -2){
 				myLandscapeSaved = true;
 				saveFrames('out', 'png', 1, globals.fr, function(data) {
 					if(data.length >0){
@@ -219,28 +220,37 @@ function drawTopFoliage(){
 	stroke(255);
 
 	var stepsFilter = globals.treeLines.filter(function(x){
-		return x.round >= globals.fixedImageMax;
+		return x.round >= globals.folliageStart;
 	});
     var steps = stepsFilter.slice(0);
 	steps.forEach(function(dash,i){
-		var index = globals.fixedImageMax + i -1;
+		var index = globals.folliageStart + i -1;
 		var color = index < globals.colors.length ? globals.colors[index] : globals.defaultColor;
 
-		fill(color.r,color.g,color.b,100);
-		stroke(color.r,color.g,color.b,95);
+		fill(color.r,color.g,color.b,50);
+		stroke(color.r,color.g,color.b,45);
 		
-		//dash.end.x = dash.end.x + map(noise(xOff), 0, 1, -3, 3),
-		//dash.end.y = dash.end.y + map(noise(yOff), 0, 1, -2, 2),
-		if(frameCount % (Math.floor(random(17,23))) == 0){
+		if(frameCount % (Math.floor(random(5,43))) == 0 ){
 			var x = dash.end.x + map(noise(xOff), 0, 1, -5, 5);
-			var y = dash.end.y + map(noise(yOff), 0, 1,  -5, 5);
+			var y = dash.end.y + map(noise(yOff), 0, 1,  -5, 15);
 		}else{
 			var x =  dash.end.x;
 			var y = dash.end.y;
 		}
-		
-		xOff += 0.1;
-		yOff += 0.1;
+		if(Math.floor(y) == -75 && !stopHairGrowth){
+			stopHairGrowth = true;
+
+		}
+		if(!stopHairGrowth){
+			dash.end.x = x;
+			dash.end.y = y;	
+			xOff += 0.1;
+			yOff += 0.1;
+		}else{
+						xOff += 0.01;
+			yOff += 0.01;
+		}
+
 		
 		line(dash.start.x,dash.start.y,x,y);
 	
