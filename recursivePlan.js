@@ -22,7 +22,7 @@ var globals = {
 	folliageStart: 11, // starting from zero
 	fr : 34,
 	bg : null,
-	drawDelay:450,
+	drawDelay:50,
 	weight : [
 	  6,5,4,3,2,1
 	],
