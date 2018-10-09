@@ -7,7 +7,7 @@ var globals = {
 	mainHeight : 480,//480
 	mainWidth : 480,
 	radius : 200,
-	baseY : 50, // half radius
+	baseY : 120, // half radius
 	mode : "100",
 	angleOffset : 0.2,
 	soilAngle : Math.PI/4,
@@ -49,11 +49,17 @@ var myLandscapeSaved = false;
 var stopHairGrowth = false;
 var xOff = 0;
 var yOff = 0;
+var originX = globals.mainWidth/2;
+var originY = globals.mainHeight/2 + globals.baseY;
+
+var message;
+var bbox;
 
 function setup() {
     var mode = (globals.mode == "WEBGL") ? WEBGL : P2D;
 	var cnv = createCanvas(globals.mainWidth,globals.mainHeight,mode);
     cnv.parent('canvasZone');
+	message = "Germination time...";
 	frameRate(globals.fr);
     calculateSoil();
 	calculateTree(globals.maxIter);
@@ -97,27 +103,27 @@ function drawSky(){
 
 function draw() {
 	if(myLandscape == null){
+		
 		background(0);	
-	
-		translate(0,0);
-
 		drawSky();
-		translate(globals.mainWidth/2,globals.mainHeight/2 + globals.baseY);
 		   
 		
-	if(frameCount>globals.drawDelay){
+		if(frameCount>globals.drawDelay){
 			drawSoil();
 			drawTree(frameCount-globals.drawDelay);
+		}else{
+			push();
+			textSize(24);
+			stroke(255);
+			fill(255);
+			text(message,originX-100,originY-120);
+			pop();
 		}
 	}else{
-		translate(0,0);
 		image(myLandscape, 0, 0);
-		translate(globals.mainWidth/2,globals.mainHeight/2 + globals.baseY);
 		stopHairGrowth = true;
 		frameRate(round(random(3,7)));
-
 		drawTopFoliage();
-			
 	}
 }
 
@@ -202,7 +208,7 @@ function drawTree(fcount){
 				if(diff > 4)
 				 ellipseLine(dash,weight); // Draw the line with continuous points is nicer
 				else
-				 line(dash.start.x,dash.start.y,dash.end.x,dash.end.y); // too tiny to notice the difference son we choose the fastest path
+				 line(dash.start.x+originX,dash.start.y+originY,dash.end.x+originX,dash.end.y+originY); // too tiny to notice the difference son we choose the fastest path
 			});
 			
 			if(!myLandscapeSaved && round == globals.maxIter -2){
@@ -254,8 +260,7 @@ function drawTopFoliage(){
 			yOff += 0.01;
 		}
 
-		
-		line(dash.start.x,dash.start.y,x,y);
+		line(dash.start.x+originX,dash.start.y+originY,x+originX,y+originY);
 	
 	});
 }
@@ -276,9 +281,9 @@ function ellipseLine(dash,weight){
 	for(var i = 0; i < nrPoints;i++){
 		 y+= yDiff;
 		 x+= xDiff;
-		ellipse(x,y,weight+extra+1,weight+extra);
+		ellipse(x+originX,y+originY,weight+extra+1,weight+extra);
 		if(extra > 0 && i% 3 == 0) extra--;
 	}
-	ellipse(dash.end.x,dash.end.y,weight,weight);
+	ellipse(dash.end.x+originX,dash.end.y+originY,weight,weight);
 }
 
