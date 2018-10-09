@@ -4,11 +4,11 @@ DATE : 2018-09-28
 */
 
 var globals = {
-	mainHeight : 480,
+	mainHeight : 480,//480
 	mainWidth : 480,
 	radius : 200,
-	baseY : 100, // half radius
-	mode : "P2D",
+	baseY : 50, // half radius
+	mode : "100",
 	angleOffset : 0.2,
 	soilAngle : Math.PI/4,
 	plantColor : 255,
@@ -54,7 +54,7 @@ function setup() {
     var mode = (globals.mode == "WEBGL") ? WEBGL : P2D;
 	var cnv = createCanvas(globals.mainWidth,globals.mainHeight,mode);
     cnv.parent('canvasZone');
-		
+	frameRate(globals.fr);
     calculateSoil();
 	calculateTree(globals.maxIter);
 }
@@ -113,6 +113,9 @@ function draw() {
 		translate(0,0);
 		image(myLandscape, 0, 0);
 		translate(globals.mainWidth/2,globals.mainHeight/2 + globals.baseY);
+		stopHairGrowth = true;
+		frameRate(round(random(3,7)));
+
 		drawTopFoliage();
 			
 	}
