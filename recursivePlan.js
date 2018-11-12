@@ -1,6 +1,7 @@
 /*
-Philippe MEYER 
+Philippe MEYER pmg.meyer@gmail.com
 DATE : 2018-09-28
+v 1.0 2018-11-12 : no more animation
 */
 
 var globals = {
@@ -19,7 +20,6 @@ var globals = {
 	treeLines : [],
 	maxIter : 12,
 	childrenAngle : 0.2,
-	folliageStart: 11, // starting from zero
 	fr : 34,
 	bg : null,
 	drawDelay:50,
@@ -46,7 +46,6 @@ var globals = {
 
 var myLandscape=null;
 var myLandscapeSaved = false;
-var stopHairGrowth = false;
 var xOff = 0;
 var yOff = 0;
 var originX = globals.mainWidth/2;
@@ -121,9 +120,6 @@ function draw() {
 		}
 	}else{
 		image(myLandscape, 0, 0);
-		stopHairGrowth = true;
-		frameRate(round(random(3,7)));
-		drawTopFoliage();
 	}
 }
 
@@ -131,19 +127,16 @@ function calculateSoil(){
 	var xoff = 0;
 	var yoff = 0;
 	globals.soilPoints = [];
-	var nrPoints = Math.floor(globals.mainWidth*1.5 / 10);
+	var nrPoints = Math.floor(globals.mainWidth / 10);
 	for(var i = 0 ; i < nrPoints; i++){
 		globals.soilPoints.push({
-			x : -240 + i * 10 + map(noise(xoff), 0, 1, -6, 6),
-			y : map(noise(yoff), 0, 1, -4, 4)
+			x :  i * 10 + map(noise(xoff), 0, 1, -6, 6),
+			y : originY + map(noise(yoff), 0, 1, -4, 4)
 		});
 		  xoff += 0.15;
 		  yoff += 0.4;
 	}
-	globals.soilPoints.push({
-			x : 480,
-			y : 0
-	});
+
 }
 
 function drawSoil(){
@@ -185,8 +178,8 @@ function calculateBranch(round,maxRounds,start,angle){
 function drawTree(fcount){
 	stroke(255);
 	depth = Math.round(fcount / 10);
-		if(depth > globals.maxIter -2) {
-			depth = globals.maxIter -2 ;
+		if(depth > globals.maxIter -1) {
+			depth = globals.maxIter -1 ;
 		}
 	
 		var round = 0;
@@ -211,7 +204,7 @@ function drawTree(fcount){
 				 line(dash.start.x+originX,dash.start.y+originY,dash.end.x+originX,dash.end.y+originY); // too tiny to notice the difference son we choose the fastest path
 			});
 			
-			if(!myLandscapeSaved && round == globals.maxIter -2){
+			if(!myLandscapeSaved && round == globals.maxIter -1){
 				myLandscapeSaved = true;
 				saveFrames('out', 'png', 1, globals.fr, function(data) {
 					if(data.length >0){
@@ -225,45 +218,6 @@ function drawTree(fcount){
 
 }
 
-function drawTopFoliage(){
-	stroke(255);
-
-	var stepsFilter = globals.treeLines.filter(function(x){
-		return x.round >= globals.folliageStart;
-	});
-    var steps = stepsFilter.slice(0);
-	steps.forEach(function(dash,i){
-		var index = globals.folliageStart + i -1;
-		var color = index < globals.colors.length ? globals.colors[index] : globals.defaultColor;
-
-		fill(color.r,color.g,color.b,50);
-		stroke(color.r,color.g,color.b,45);
-		
-		if(frameCount % (Math.floor(random(5,43))) == 0 ){
-			var x = dash.end.x + map(noise(xOff), 0, 1, -5, 5);
-			var y = dash.end.y + map(noise(yOff), 0, 1,  -5, 15);
-		}else{
-			var x =  dash.end.x;
-			var y = dash.end.y;
-		}
-		if(Math.floor(y) == -75 && !stopHairGrowth){
-			stopHairGrowth = true;
-
-		}
-		if(!stopHairGrowth){
-			dash.end.x = x;
-			dash.end.y = y;	
-			xOff += 0.1;
-			yOff += 0.1;
-		}else{
-						xOff += 0.01;
-			yOff += 0.01;
-		}
-
-		line(dash.start.x+originX,dash.start.y+originY,x+originX,y+originY);
-	
-	});
-}
 
 function ellipseLine(dash,weight){
 	var nrPoints = dash.len;
